@@ -26,27 +26,36 @@ function startVisualCalibration() {
   visualResult.value = null
   isVisualCalibrating.value = true
 
-  visualAudioCtx = null // 输入校准不播放声音
+  visualAudioCtx = new AudioContext()
 
+  const bpm = 120
+  const beatInterval = 60000 / bpm // 500ms
   const totalBeats = 8
-  const startTime = performance.now() + 1500 // 1.5秒后开始
+  const startTime = performance.now() + 1000 // 1秒后开始
 
-  // 预计算节拍时间（随机间隔 800-1500ms）
-  let t = startTime
+  // 预计算节拍时间
   for (let i = 0; i < totalBeats; i++) {
-    visualBeatTimes.push(t)
-    t += 800 + Math.random() * 700
+    const beatTime = startTime + i * beatInterval
+    visualBeatTimes.push(beatTime)
+  }
+
+  // 播放节拍器声音
+  for (let i = 0; i < totalBeats; i++) {
+    const delay = (beatTimeForIndex(i) - performance.now()) / 1000
+    if (delay > 0) {
+      playClick(visualAudioCtx, delay, i === 0 || i === 4)
+    }
   }
 
   // 节拍闪烁动画
   let lastBeatIndex = -1
   function flashLoop() {
     const now = performance.now()
-    const currentBeatIndex = visualBeatTimes.findIndex(t => Math.abs(now - t) < 150)
+    const currentBeatIndex = visualBeatTimes.findIndex(t => Math.abs(now - t) < 100)
     if (currentBeatIndex !== -1 && currentBeatIndex !== lastBeatIndex) {
       lastBeatIndex = currentBeatIndex
       visualBeatFlash.value = true
-      setTimeout(() => { visualBeatFlash.value = false }, 150)
+      setTimeout(() => { visualBeatFlash.value = false }, 100)
     }
     if (isVisualCalibrating.value) {
       visualAnimId = requestAnimationFrame(flashLoop)
@@ -55,10 +64,9 @@ function startVisualCalibration() {
   visualAnimId = requestAnimationFrame(flashLoop)
 
   // 结束校准
-  const totalTime = visualBeatTimes[totalBeats - 1] - startTime + 1500
   setTimeout(() => {
     finishVisualCalibration()
-  }, totalTime)
+  }, (totalBeats - 1) * beatInterval + 1500)
 }
 
 function beatTimeForIndex(i: number): number {
@@ -144,14 +152,13 @@ function startAudioCalibration() {
 
   audioAudioCtx = new AudioContext()
 
+  const bpm = 120
+  const beatInterval = 60000 / bpm
   const totalBeats = 8
   const startTime = performance.now() + 1500
 
-  // 随机间隔 800-1500ms
-  let t = startTime
   for (let i = 0; i < totalBeats; i++) {
-    audioBeatTimes.push(t)
-    t += 800 + Math.random() * 700
+    audioBeatTimes.push(startTime + i * beatInterval)
   }
 
   // 播放节拍
@@ -166,12 +173,12 @@ function startAudioCalibration() {
   let lastBeatIndex = -1
   function flashLoop() {
     const now = performance.now()
-    const idx = audioBeatTimes.findIndex(t => Math.abs(now - t) < 150)
+    const idx = audioBeatTimes.findIndex(t => Math.abs(now - t) < 100)
     if (idx !== -1 && idx !== lastBeatIndex) {
       lastBeatIndex = idx
       audioBeatCount.value = idx + 1
       audioBeatFlash.value = true
-      setTimeout(() => { audioBeatFlash.value = false }, 150)
+      setTimeout(() => { audioBeatFlash.value = false }, 100)
     }
     if (isAudioCalibrating.value) {
       audioAnimId = requestAnimationFrame(flashLoop)
@@ -179,10 +186,9 @@ function startAudioCalibration() {
   }
   audioAnimId = requestAnimationFrame(flashLoop)
 
-  const totalTime = audioBeatTimes[totalBeats - 1] - startTime + 2000
   setTimeout(() => {
     finishAudioCalibration()
-  }, totalTime)
+  }, (totalBeats - 1) * beatInterval + 2000)
 }
 
 function recordAudioTap() {
@@ -288,8 +294,7 @@ onUnmounted(() => {
       <div v-if="calibrationStep === 0" class="calibration-panel fade-in fade-in-delay-2">
         <p class="calibration-desc">
           测试你的反应速度。点击"开始"后会播放节拍器，<strong>看到画面闪烁时立即按空格键</strong>。<br/>
-          系统会计算你的平均反应延迟，自动补偿输入偏移。<br/>
-          <span class="calibration-warn">⚠️ 校准测试不一定准确，也可以在"手动调整"中微调</span>
+          系统会计算你的平均反应延迟，自动补偿输入偏移。
         </p>
 
         <!-- 节拍可视化 -->
@@ -327,8 +332,7 @@ onUnmounted(() => {
       <div v-if="calibrationStep === 1" class="calibration-panel fade-in fade-in-delay-2">
         <p class="calibration-desc">
           测试音频同步。点击"开始"后会播放节拍器，<strong>听到声音时按空格键</strong>。<br/>
-          系统会计算音频与视觉的延迟差，自动调整全局偏移。<br/>
-          <span class="calibration-warn">⚠️ 校准测试不一定准确，也可以在"手动调整"中微调</span>
+          系统会计算音频与视觉的延迟差，自动调整全局偏移。
         </p>
 
         <div class="beat-visual" :class="{ flash: audioBeatFlash }">
@@ -524,11 +528,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.5);
   margin-top: 4px;
-}
-
-.calibration-warn {
-  font-size: 12px;
-  color: rgba(255, 200, 100, 0.7);
 }
 
 .calibration-result.warn {
