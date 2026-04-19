@@ -443,6 +443,7 @@ async function initGame() {
   // Try to load saved audio from IndexedDB
   const audioKey = localStorage.getItem('rhythm-pulse-game-audio-key')
   const songId = (gameStore.currentChart as any)?.id
+  const songAudioUrl = (gameStore.currentChart as any)?.audioUrl
   const dbKey = audioKey || (songId ? `song-${songId}` : null)
 
   if (dbKey) {
@@ -460,18 +461,44 @@ async function initGame() {
         if (loaded) {
           noAudioMode = false
           audioEngine.seek(0)
+        } else if (songAudioUrl) {
+          const loaded2 = await audioEngine.loadBGM(songAudioUrl, 10000)
+          if (loaded2) { noAudioMode = false; audioEngine.seek(0) }
+          else { noAudioMode = true; gameStartTime = performance.now() }
         } else {
           noAudioMode = true
           gameStartTime = performance.now()
         }
+      } else if (songAudioUrl) {
+        const loaded = await audioEngine.loadBGM(songAudioUrl, 10000)
+        if (loaded) { noAudioMode = false; audioEngine.seek(0) }
+        else { noAudioMode = true; gameStartTime = performance.now() }
       } else {
         noAudioMode = true
         gameStartTime = performance.now()
       }
     } catch (e) {
       console.error('加载音频失败:', e)
-      noAudioMode = true
-      gameStartTime = performance.now()
+      if (songAudioUrl) {
+        try {
+          const loaded = await audioEngine.loadBGM(songAudioUrl, 10000)
+          if (loaded) { noAudioMode = false; audioEngine.seek(0) }
+          else { noAudioMode = true; gameStartTime = performance.now() }
+        } catch {
+          noAudioMode = true; gameStartTime = performance.now()
+        }
+      } else {
+        noAudioMode = true
+        gameStartTime = performance.now()
+      }
+    }
+  } else if (songAudioUrl) {
+    try {
+      const loaded = await audioEngine.loadBGM(songAudioUrl, 10000)
+      if (loaded) { noAudioMode = false; audioEngine.seek(0) }
+      else { noAudioMode = true; gameStartTime = performance.now() }
+    } catch {
+      noAudioMode = true; gameStartTime = performance.now()
     }
   } else {
     noAudioMode = true

@@ -264,7 +264,7 @@ onUnmounted(() => {
 }
 
 .tafi-gif-main {
-  height: 120px;
+  height: 180px;
   width: auto;
   object-fit: contain;
   filter: drop-shadow(0 0 20px rgba(255, 107, 157, 0.3));
