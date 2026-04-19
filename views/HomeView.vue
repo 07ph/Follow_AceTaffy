@@ -165,7 +165,7 @@ let bgmAudio: HTMLAudioElement | null = null
 
 function initBgm() {
   if (!settings.homeBgm) return
-  bgmAudio = new Audio('/home-bgm.flac')
+  bgmAudio = new Audio('/home-bgm.m4a')
   bgmAudio.loop = true
   bgmAudio.volume = settings.bgmVolume * 0.5
   bgmAudio.play().catch(() => {
