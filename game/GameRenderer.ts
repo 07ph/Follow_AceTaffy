@@ -92,7 +92,7 @@ export class GameRenderer {
 
   // Image paths
   static tapImagePath = '/taffyball.png'
-  static specialImagePath = '/taffyball.png'
+  static specialImagePath = '/blackball.png'
 
   // Image assets
   private noteImage: HTMLImageElement | null = null
