@@ -54,8 +54,9 @@ function loadSongs() {
     if (raw) {
       const parsed = JSON.parse(raw)
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]._version === CHART_VERSION) {
-        songs.value = parsed
-        return
+        // 过滤掉无效歌曲（必须有 notes 数组）
+        songs.value = parsed.filter((s: any) => s.notes && Array.isArray(s.notes) && s.notes.length > 0)
+        if (songs.value.length > 0) return
       }
     }
   } catch {
@@ -139,10 +140,22 @@ function handleFileUpload(e: Event) {
   const file = target.files?.[0]
   if (!file) return
 
+  // 检查文件扩展名
+  if (!file.name.endsWith('.json')) {
+    alert('请上传 .json 格式的谱面文件，不要上传 package.json 等其他 JSON 文件。')
+    target.value = ''
+    return
+  }
+
   const reader = new FileReader()
   reader.onload = () => {
     try {
       const chart = JSON.parse(reader.result as string) as Chart
+      // 验证是否为有效谱面（必须有 notes 数组，防止误传 package.json 等）
+      if (!chart.notes || !Array.isArray(chart.notes) || chart.notes.length === 0) {
+        alert('无效的谱面文件：缺少 notes 数组或 notes 为空。请勿上传 package.json 等非谱面文件。')
+        return
+      }
       const id = 'upload_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6)
       const title = chart.title || '自定义谱面'
       songs.value.push({ ...chart, id, title: title, artist: chart.artist || '' })
@@ -157,8 +170,27 @@ function handleFileUpload(e: Event) {
   target.value = ''
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadSongs()
+  // 预加载默认歌曲的音频到 IndexedDB
+  const demoKey = 'song-demo'
+  try {
+    const existing = await loadAudioFromDB(demoKey)
+    if (!existing) {
+      const response = await fetch('/demo-song.m4a')
+      const arrayBuffer = await response.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const base64 = btoa(binary)
+      const dataUrl = `data:audio/m4a;base64,${base64}`
+      await saveAudioToDB(demoKey, dataUrl)
+    }
+  } catch (e) {
+    console.warn('预加载默认音频失败:', e)
+  }
 })
 </script>
 

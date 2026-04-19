@@ -150,7 +150,7 @@ export class GameRenderer {
     this.trackY = this.height * 0.5
     this.leftJudgeX = this.width * 0.4
     this.rightJudgeX = this.width * 0.6
-    this.judgeRadius = Math.min(this.width, this.height) * 0.04
+    this.judgeRadius = Math.min(this.width, this.height) * 0.055
 
     this.initBgParticles()
   }
@@ -225,9 +225,9 @@ export class GameRenderer {
   // 计算音符在轨道上的位置
   getNotePosition(note: Note, songTime: number, scrollSpeed: number): { x: number, y: number } | null {
     const timeDiff = note.time - songTime
-    if (timeDiff < -1 || timeDiff > 3) return null // 不在可见范围内
+    if (timeDiff < -1 || timeDiff > 5) return null // 不在可见范围内
 
-    const travelTime = 2 / scrollSpeed * 5 // 音符从边缘到判定圈的时间（秒）
+    const travelTime = 2 / scrollSpeed * 8 // 音符从边缘到判定圈的时间（秒），增大让视觉更慢
     const progress = 1 - (timeDiff / travelTime) // 0 = 在边缘, 1 = 在判定圈
 
     if (progress < 0 || progress > 1.2) return null
@@ -723,8 +723,8 @@ export class GameRenderer {
     ctx.globalAlpha = 0.4 + glow * 0.4
 
     const stickLen = this.height * 0.25
-    const stickWidth = 4
-    const ballRadius = 10 + glow * 8
+    const stickWidth = 8
+    const ballRadius = 14 + glow * 10
 
     // 棒身
     const grad = ctx.createLinearGradient(0, 0, 0, -stickLen)
