@@ -225,9 +225,9 @@ export class GameRenderer {
   // 计算音符在轨道上的位置
   getNotePosition(note: Note, songTime: number, scrollSpeed: number): { x: number, y: number } | null {
     const timeDiff = note.time - songTime
-    if (timeDiff < -1 || timeDiff > 5) return null // 不在可见范围内
+    if (timeDiff < -1 || timeDiff > 3) return null // 不在可见范围内
 
-    const travelTime = 2 / scrollSpeed * 8 // 音符从边缘到判定圈的时间（秒），增大让视觉更慢
+    const travelTime = 2 / scrollSpeed * 5 // 音符从边缘到判定圈的时间（秒）
     const progress = 1 - (timeDiff / travelTime) // 0 = 在边缘, 1 = 在判定圈
 
     if (progress < 0 || progress > 1.2) return null
