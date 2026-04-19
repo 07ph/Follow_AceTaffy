@@ -7,15 +7,17 @@ export const useSettingsStore = defineStore('settings', () => {
   const scrollSpeed = ref(5)
   const offset = ref(0)
   const inputOffset = ref(0)
+  const homeBgm = ref(true)
 
   function setBgmVolume(v: number) { bgmVolume.value = Math.max(0, Math.min(1, v)) }
   function setSfxVolume(v: number) { sfxVolume.value = Math.max(0, Math.min(1, v)) }
   function setScrollSpeed(v: number) { scrollSpeed.value = Math.max(1, Math.min(15, v)) }
   function setOffset(v: number) { offset.value = v }
   function setInputOffset(v: number) { inputOffset.value = v }
+  function setHomeBgm(v: boolean) { homeBgm.value = v }
 
   return {
-    bgmVolume, sfxVolume, scrollSpeed, offset, inputOffset,
-    setBgmVolume, setSfxVolume, setScrollSpeed, setOffset, setInputOffset
+    bgmVolume, sfxVolume, scrollSpeed, offset, inputOffset, homeBgm,
+    setBgmVolume, setSfxVolume, setScrollSpeed, setOffset, setInputOffset, setHomeBgm
   }
 })

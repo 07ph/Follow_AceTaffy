@@ -1,80 +1,206 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ParticleBackground from '../components/ParticleBackground.vue'
+import { useSettingsStore } from '../stores/settings'
 
 const router = useRouter()
+const settings = useSettingsStore()
 
 function openEditor() {
   localStorage.removeItem('rhythm-pulse-editing-id')
   router.push('/editor')
 }
 
-// === 弹跳 GIF ===
-const tafiGif = ref<HTMLImageElement | null>(null)
+// === 弹跳 GIF 系统 ===
+interface BouncingEntity {
+  id: number
+  x: number
+  y: number
+  vx: number
+  vy: number
+  size: number
+  isMeteor: boolean
+  opacity: number
+  rotation: number
+  rotationSpeed: number
+}
+
+const entities = ref<BouncingEntity[]>([])
+let nextId = 0
 let bounceAnimId = 0
-let isBouncing = false
+const MAX_ENTITIES = 12
+const SPLIT_CHANCE = 0.35
+const MIN_SPLIT_SIZE = 35
+const METEOR_THRESHOLD = 8
 
-function startBouncing() {
-  const el = tafiGif.value
-  if (!el || isBouncing) return
-  isBouncing = true
+function createEntity(x: number, y: number, size: number, vx?: number, vy?: number): BouncingEntity {
+  return {
+    id: nextId++,
+    x, y, size,
+    vx: vx ?? (2 + Math.random() * 3) * (Math.random() > 0.5 ? 1 : -1),
+    vy: vy ?? (2 + Math.random() * 3) * (Math.random() > 0.5 ? 1 : -1),
+    isMeteor: false,
+    opacity: 1,
+    rotation: 0,
+    rotationSpeed: (Math.random() - 0.5) * 4
+  }
+}
 
-  // 切换到 fixed 定位，保持当前视觉位置
-  const rect = el.getBoundingClientRect()
-  el.style.position = 'fixed'
-  el.style.left = rect.left + 'px'
-  el.style.top = rect.top + 'px'
-  el.style.zIndex = '50'
-  el.style.margin = '0'
+function onTafiClick(event: MouseEvent) {
+  if (entities.value.length > 0) {
+    // 找到点击的那个实体，只给它加速
+    const target = event.target as HTMLElement
+    const id = target.dataset.entityId
+    if (id) {
+      const entity = entities.value.find(e => e.id === Number(id))
+      if (entity && !entity.isMeteor) {
+        entity.vx = (3 + Math.random() * 4) * (entity.vx > 0 ? 1 : -1)
+        entity.vy = (3 + Math.random() * 4) * (entity.vy > 0 ? 1 : -1)
+      }
+    }
+    return
+  }
 
-  const gifW = el.offsetWidth
-  const gifH = el.offsetHeight
+  // 初始：从页面内容流位置开始
+  const el = document.querySelector('.tafi-gif-main') as HTMLElement
+  const rect = el?.getBoundingClientRect()
+  const startX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
+  const startY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
 
-  let x = rect.left
-  let y = rect.top
-  let vx = (3 + Math.random() * 3) * (Math.random() > 0.5 ? 1 : -1)
-  let vy = (3 + Math.random() * 3) * (Math.random() > 0.5 ? 1 : -1)
+  entities.value.push(createEntity(startX, startY, 120))
+}
 
-  function animate() {
-    const cw = window.innerWidth
-    const ch = window.innerHeight
+function splitEntity(entity: BouncingEntity) {
+  if (entities.value.length >= MAX_ENTITIES) return
+  if (entity.size < MIN_SPLIT_SIZE) return
 
-    x += vx
-    y += vy
+  const newSize = entity.size * 0.65
+  const offsetAngle = Math.random() * Math.PI * 2
+  const offsetDist = 10
 
-    if (x <= 0) { x = 0; vx = Math.abs(vx) }
-    if (x >= cw - gifW) { x = cw - gifW; vx = -Math.abs(vx) }
-    if (y <= 0) { y = 0; vy = Math.abs(vy) }
-    if (y >= ch - gifH) { y = ch - gifH; vy = -Math.abs(vy) }
+  const child1 = createEntity(
+    entity.x + Math.cos(offsetAngle) * offsetDist,
+    entity.y + Math.sin(offsetAngle) * offsetDist,
+    newSize,
+    entity.vx + (Math.random() - 0.5) * 2,
+    entity.vy + (Math.random() - 0.5) * 2
+  )
+  const child2 = createEntity(
+    entity.x - Math.cos(offsetAngle) * offsetDist,
+    entity.y - Math.sin(offsetAngle) * offsetDist,
+    newSize,
+    entity.vx + (Math.random() - 0.5) * 2,
+    entity.vy + (Math.random() - 0.5) * 2
+  )
 
-    el!.style.left = x + 'px'
-    el!.style.top = y + 'px'
+  entities.value.push(child1, child2)
+}
 
-    vx *= 0.999
-    vy *= 0.999
+function animate() {
+  const cw = window.innerWidth
+  const ch = window.innerHeight
+  const toRemove: number[] = []
 
-    if (Math.abs(vx) < 0.3 && Math.abs(vy) < 0.3) {
-      isBouncing = false
-      return
+  for (const e of entities.value) {
+    if (e.isMeteor) {
+      // 流星模式：直线飞行，逐渐消失
+      e.x += e.vx * 2
+      e.y += e.vy * 2
+      e.opacity -= 0.008
+      e.rotation += e.rotationSpeed * 2
+
+      if (e.opacity <= 0 || e.x < -200 || e.x > cw + 200 || e.y < -200 || e.y > ch + 200) {
+        toRemove.push(e.id)
+      }
+      continue
     }
 
-    bounceAnimId = requestAnimationFrame(animate)
+    e.x += e.vx
+    e.y += e.vy
+    e.rotation += e.rotationSpeed
+
+    // 估算尺寸（宽高比约 1:1）
+    const halfSize = e.size / 2
+    let bounced = false
+
+    if (e.x - halfSize <= 0) { e.x = halfSize; e.vx = Math.abs(e.vx); bounced = true }
+    if (e.x + halfSize >= cw) { e.x = cw - halfSize; e.vx = -Math.abs(e.vx); bounced = true }
+    if (e.y - halfSize <= 0) { e.y = halfSize; e.vy = Math.abs(e.vy); bounced = true }
+    if (e.y + halfSize >= ch) { e.y = ch - halfSize; e.vy = -Math.abs(e.vy); bounced = true }
+
+    // 碰壁时概率分裂
+    if (bounced && Math.random() < SPLIT_CHANCE && entities.value.length < MAX_ENTITIES) {
+      splitEntity(e)
+    }
+
+    // 实体太多时，最小的变成流星
+    if (entities.value.length >= METEOR_THRESHOLD) {
+      const nonMeteors = entities.value.filter(en => !en.isMeteor)
+      if (nonMeteors.length >= METEOR_THRESHOLD) {
+        // 找最小的变成流星
+        const smallest = nonMeteors.reduce((a, b) => a.size < b.size ? a : b)
+        smallest.isMeteor = true
+        smallest.vx = (Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 4)
+        smallest.vy = -3 - Math.random() * 4
+        smallest.rotationSpeed = (Math.random() - 0.5) * 10
+      }
+    }
+
+    // 逐渐减速
+    e.vx *= 0.9995
+    e.vy *= 0.9995
+  }
+
+  // 移除消失的流星
+  if (toRemove.length > 0) {
+    entities.value = entities.value.filter(e => !toRemove.includes(e.id))
   }
 
   bounceAnimId = requestAnimationFrame(animate)
 }
 
-function onTafiClick() {
-  if (isBouncing) {
-    cancelAnimationFrame(bounceAnimId)
-    isBouncing = false
-  }
-  startBouncing()
+// === 主页 BGM ===
+let bgmAudio: HTMLAudioElement | null = null
+
+function initBgm() {
+  if (!settings.homeBgm) return
+  bgmAudio = new Audio('/home-bgm.flac')
+  bgmAudio.loop = true
+  bgmAudio.volume = settings.bgmVolume * 0.5
+  bgmAudio.play().catch(() => {
+    document.addEventListener('click', function tryPlay() {
+      bgmAudio?.play().catch(() => {})
+      document.removeEventListener('click', tryPlay)
+    }, { once: true })
+  })
 }
+
+function stopBgm() {
+  if (bgmAudio) {
+    bgmAudio.pause()
+    bgmAudio.currentTime = 0
+    bgmAudio = null
+  }
+}
+
+watch(() => settings.bgmVolume, (v) => {
+  if (bgmAudio) bgmAudio.volume = v * 0.5
+})
+
+watch(() => settings.homeBgm, (v) => {
+  if (v && !bgmAudio) initBgm()
+  else if (!v && bgmAudio) stopBgm()
+})
+
+onMounted(() => {
+  initBgm()
+  bounceAnimId = requestAnimationFrame(animate)
+})
 
 onUnmounted(() => {
   cancelAnimationFrame(bounceAnimId)
+  stopBgm()
 })
 </script>
 
@@ -83,11 +209,13 @@ onUnmounted(() => {
     <ParticleBackground />
     <div class="home-content">
       <img
-        ref="tafiGif"
+        v-if="entities.length === 0"
         src="/yctf.gif"
         alt="永雏塔菲"
-        class="tafi-gif fade-in"
+        class="tafi-gif-main fade-in"
+        draggable="false"
         @click="onTafiClick"
+        @dragstart.prevent
       />
       <p class="subtitle fade-in fade-in-delay-1">关注塔菲谢谢喵 ✨</p>
 
@@ -98,6 +226,29 @@ onUnmounted(() => {
         <button class="btn" @click="router.push('/calibration')">🎯 校准</button>
       </div>
     </div>
+
+    <!-- 弹跳的小菲们 -->
+    <img
+      v-for="e in entities"
+      :key="e.id"
+      src="/yctf.gif"
+      alt="塔菲"
+      class="bouncing-tafi"
+      :class="{ meteor: e.isMeteor }"
+      :data-entity-id="e.id"
+      :style="{
+        left: (e.x - e.size / 2) + 'px',
+        top: (e.y - e.size / 2) + 'px',
+        width: e.size + 'px',
+        height: e.size + 'px',
+        opacity: e.opacity,
+        transform: 'rotate(' + e.rotation + 'deg)',
+        zIndex: e.isMeteor ? 60 : 50
+      }"
+      draggable="false"
+      @click="onTafiClick"
+      @dragstart.prevent
+    />
   </div>
 </template>
 
@@ -112,7 +263,7 @@ onUnmounted(() => {
   padding: 20px;
 }
 
-.tafi-gif {
+.tafi-gif-main {
   height: 120px;
   width: auto;
   object-fit: contain;
@@ -131,5 +282,19 @@ onUnmounted(() => {
   gap: 16px;
   flex-wrap: wrap;
   justify-content: center;
+}
+
+.bouncing-tafi {
+  position: fixed;
+  object-fit: contain;
+  pointer-events: auto;
+  cursor: pointer;
+  filter: drop-shadow(0 0 10px rgba(255, 107, 157, 0.4));
+  transition: filter 0.2s;
+}
+
+.bouncing-tafi.meteor {
+  pointer-events: none;
+  filter: drop-shadow(0 0 15px rgba(255, 200, 100, 0.6));
 }
 </style>

@@ -4,93 +4,261 @@ function generateNoteId(): string {
   return 'note_' + Math.random().toString(36).substr(2, 9)
 }
 
-// 生成示例谱面 - BPM 120, Normal Lv.5
-function generateDemoChart(): Note[] {
-  const bpm = 120
-  const beatInterval = 60 / bpm // 0.5秒一拍
-  const startOffset = 4 // 4秒后开始（倒计时后）
-
-  // 简单的节奏模式
-  const patterns: { time: number; track: number; type: Note['type']; duration?: number }[] = []
-
-  // 第一段：简单的交替 (8拍)
-  for (let i = 0; i < 8; i++) {
-    patterns.push({
-      time: startOffset + i * beatInterval,
-      track: i % 2 === 0 ? 0 : 1,
-      type: 'tap'
-    })
-  }
-
-  // 第二段：双押 (4拍)
-  for (let i = 0; i < 4; i++) {
-    const t = startOffset + 8 * beatInterval + i * beatInterval
-    patterns.push({ time: t, track: 0, type: 'tap' })
-    patterns.push({ time: t, track: 1, type: 'tap' })
-  }
-
-  // 第三段：快速交替 (8个八分音符)
-  for (let i = 0; i < 8; i++) {
-    patterns.push({
-      time: startOffset + 12 * beatInterval + i * beatInterval * 0.5,
-      track: i % 2 === 0 ? 0 : 1,
-      type: 'tap'
-    })
-  }
-
-  // 第四段：加入 hold
-  for (let i = 0; i < 4; i++) {
-    const t = startOffset + 16 * beatInterval + i * beatInterval
-    patterns.push({ time: t, track: 0, type: 'hold', duration: beatInterval * 2 })
-    patterns.push({ time: t + beatInterval * 0.5, track: 1, type: 'tap' })
-  }
-
-  // 第五段：special 音符
-  patterns.push({
-    time: startOffset + 20 * beatInterval,
-    track: 0,
-    type: 'special'
-  })
-  patterns.push({
-    time: startOffset + 20 * beatInterval,
-    track: 1,
-    type: 'special'
-  })
-
-  // 第六段：高潮 - 密集音符
-  for (let i = 0; i < 16; i++) {
-    const t = startOffset + 22 * beatInterval + i * beatInterval * 0.5
-    patterns.push({
-      time: t,
-      track: i % 2 === 0 ? 0 : 1,
-      type: 'tap'
-    })
-  }
-
-  // 第七段：结尾
-  for (let i = 0; i < 4; i++) {
-    const t = startOffset + 30 * beatInterval + i * beatInterval
-    patterns.push({ time: t, track: 0, type: 'tap' })
-    patterns.push({ time: t, track: 1, type: 'tap' })
-  }
-
-  // 最后一个 special
-  patterns.push({
-    time: startOffset + 34 * beatInterval,
-    track: 0,
-    type: 'special'
-  })
-
-  return patterns.map(p => ({
-    id: generateNoteId(),
-    time: Math.round(p.time * 1000) / 1000,
-    type: p.type,
-    track: p.track,
-    duration: p.duration ? Math.round(p.duration * 1000) / 1000 : undefined,
-    hit: false,
-    missed: false
-  }))
-}
+// 从 puzi.json 导入的谱面数据 (252 notes)
+const puziNotes: { time: number; type: string; track: number; duration?: number }[] = [
+  {"time": 1.5, "type": "tap", "track": 0},
+  {"time": 1.5, "type": "tap", "track": 1},
+  {"time": 2, "type": "tap", "track": 0},
+  {"time": 2, "type": "tap", "track": 1},
+  {"time": 2.625, "type": "tap", "track": 0},
+  {"time": 2.625, "type": "tap", "track": 1},
+  {"time": 3, "type": "tap", "track": 0},
+  {"time": 3, "type": "tap", "track": 1},
+  {"time": 3.375, "type": "tap", "track": 0},
+  {"time": 3.375, "type": "tap", "track": 1},
+  {"time": 4, "type": "tap", "track": 0},
+  {"time": 4, "type": "tap", "track": 1},
+  {"time": 4.5, "type": "tap", "track": 0},
+  {"time": 4.5, "type": "tap", "track": 1},
+  {"time": 5.125, "type": "tap", "track": 0},
+  {"time": 5.125, "type": "tap", "track": 1},
+  {"time": 5.5, "type": "tap", "track": 0},
+  {"time": 5.5, "type": "tap", "track": 1},
+  {"time": 5.875, "type": "tap", "track": 0},
+  {"time": 5.875, "type": "tap", "track": 1},
+  {"time": 6.5, "type": "tap", "track": 0},
+  {"time": 6.5, "type": "tap", "track": 1},
+  {"time": 7, "type": "tap", "track": 0},
+  {"time": 7, "type": "tap", "track": 1},
+  {"time": 7.625, "type": "tap", "track": 0},
+  {"time": 7.625, "type": "tap", "track": 1},
+  {"time": 8, "type": "tap", "track": 0},
+  {"time": 8, "type": "tap", "track": 1},
+  {"time": 8.375, "type": "tap", "track": 0},
+  {"time": 8.375, "type": "tap", "track": 1},
+  {"time": 8.75, "type": "tap", "track": 0},
+  {"time": 8.75, "type": "tap", "track": 1},
+  {"time": 9.625, "type": "tap", "track": 0},
+  {"time": 9.625, "type": "tap", "track": 1},
+  {"time": 10.125, "type": "tap", "track": 0},
+  {"time": 10.125, "type": "tap", "track": 1},
+  {"time": 10.625, "type": "tap", "track": 0},
+  {"time": 10.625, "type": "tap", "track": 1},
+  {"time": 11, "type": "tap", "track": 0},
+  {"time": 11, "type": "tap", "track": 1},
+  {"time": 11.375, "type": "tap", "track": 0},
+  {"time": 11.375, "type": "tap", "track": 1},
+  {"time": 12, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 12, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 13, "type": "tap", "track": 0},
+  {"time": 13, "type": "tap", "track": 1},
+  {"time": 13.25, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 13.25, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 14, "type": "tap", "track": 0},
+  {"time": 14, "type": "tap", "track": 1},
+  {"time": 14.25, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 14.25, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 15, "type": "hold", "track": 0, "duration": 0.5},
+  {"time": 15, "type": "hold", "track": 1, "duration": 0.5},
+  {"time": 16.125, "type": "tap", "track": 0},
+  {"time": 16.125, "type": "tap", "track": 1},
+  {"time": 16.5, "type": "tap", "track": 0},
+  {"time": 16.5, "type": "tap", "track": 1},
+  {"time": 16.875, "type": "tap", "track": 0},
+  {"time": 16.875, "type": "tap", "track": 1},
+  {"time": 17.5, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 17.5, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 18.5, "type": "tap", "track": 0},
+  {"time": 18.5, "type": "tap", "track": 1},
+  {"time": 18.75, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 18.75, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 19.5, "type": "tap", "track": 0},
+  {"time": 19.5, "type": "tap", "track": 1},
+  {"time": 19.75, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 19.75, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 20.5, "type": "tap", "track": 0},
+  {"time": 20.5, "type": "tap", "track": 1},
+  {"time": 20.75, "type": "hold", "track": 0, "duration": 0.375},
+  {"time": 20.75, "type": "hold", "track": 1, "duration": 0.375},
+  {"time": 22.75, "type": "special", "track": 0},
+  {"time": 22.75, "type": "special", "track": 1},
+  {"time": 23.25, "type": "special", "track": 0},
+  {"time": 23.25, "type": "special", "track": 1},
+  {"time": 23.75, "type": "special", "track": 0},
+  {"time": 23.75, "type": "special", "track": 1},
+  {"time": 24.25, "type": "special", "track": 0},
+  {"time": 24.25, "type": "special", "track": 1},
+  {"time": 25, "type": "special", "track": 1},
+  {"time": 25, "type": "special", "track": 0},
+  {"time": 25.375, "type": "special", "track": 1},
+  {"time": 25.375, "type": "special", "track": 0},
+  {"time": 25.75, "type": "special", "track": 1},
+  {"time": 25.75, "type": "special", "track": 0},
+  {"time": 26.125, "type": "special", "track": 1},
+  {"time": 26.125, "type": "special", "track": 0},
+  {"time": 26.5, "type": "special", "track": 1},
+  {"time": 26.5, "type": "special", "track": 0},
+  {"time": 26.5, "type": "special", "track": 0},
+  {"time": 27, "type": "special", "track": 1},
+  {"time": 27.5, "type": "special", "track": 0},
+  {"time": 27.5, "type": "special", "track": 1},
+  {"time": 27.75, "type": "special", "track": 0},
+  {"time": 27.75, "type": "special", "track": 1},
+  {"time": 28, "type": "special", "track": 0},
+  {"time": 28, "type": "special", "track": 1},
+  {"time": 28.5, "type": "special", "track": 0},
+  {"time": 28.5, "type": "special", "track": 1},
+  {"time": 29, "type": "special", "track": 0},
+  {"time": 29, "type": "special", "track": 1},
+  {"time": 29.5, "type": "special", "track": 0},
+  {"time": 29.5, "type": "special", "track": 1},
+  {"time": 30, "type": "special", "track": 0},
+  {"time": 30, "type": "special", "track": 1},
+  {"time": 30.5, "type": "special", "track": 0},
+  {"time": 30.5, "type": "special", "track": 1},
+  {"time": 31, "type": "special", "track": 0},
+  {"time": 31, "type": "special", "track": 1},
+  {"time": 31.5, "type": "special", "track": 0},
+  {"time": 31.5, "type": "special", "track": 1},
+  {"time": 32, "type": "special", "track": 0},
+  {"time": 32, "type": "special", "track": 1},
+  {"time": 32.5, "type": "special", "track": 0},
+  {"time": 32.5, "type": "special", "track": 1},
+  {"time": 32.75, "type": "special", "track": 0},
+  {"time": 32.75, "type": "special", "track": 1},
+  {"time": 33, "type": "special", "track": 0},
+  {"time": 33, "type": "special", "track": 1},
+  {"time": 34.125, "type": "things", "track": 0},
+  {"time": 34.375, "type": "things", "track": 0},
+  {"time": 34.625, "type": "things", "track": 0},
+  {"time": 34.875, "type": "things", "track": 0},
+  {"time": 35.125, "type": "things", "track": 0},
+  {"time": 35.375, "type": "things", "track": 0},
+  {"time": 35.625, "type": "things", "track": 0},
+  {"time": 35.875, "type": "things", "track": 0},
+  {"time": 36.125, "type": "things", "track": 0},
+  {"time": 36.375, "type": "things", "track": 0},
+  {"time": 36.625, "type": "things", "track": 0},
+  {"time": 36.875, "type": "things", "track": 0},
+  {"time": 37.125, "type": "things", "track": 0},
+  {"time": 37.375, "type": "things", "track": 0},
+  {"time": 37.625, "type": "things", "track": 0},
+  {"time": 39, "type": "tap", "track": 0},
+  {"time": 39, "type": "tap", "track": 1},
+  {"time": 40, "type": "tap", "track": 0},
+  {"time": 40, "type": "tap", "track": 1},
+  {"time": 41, "type": "tap", "track": 0},
+  {"time": 41, "type": "tap", "track": 1},
+  {"time": 42, "type": "tap", "track": 0},
+  {"time": 42, "type": "tap", "track": 1},
+  {"time": 42.5, "type": "tap", "track": 0},
+  {"time": 42.5, "type": "tap", "track": 1},
+  {"time": 42.75, "type": "things", "track": 0},
+  {"time": 42.75, "type": "things", "track": 1},
+  {"time": 43, "type": "tap", "track": 0},
+  {"time": 43, "type": "tap", "track": 1},
+  {"time": 43.25, "type": "things", "track": 0},
+  {"time": 43.25, "type": "things", "track": 1},
+  {"time": 43.5, "type": "tap", "track": 0},
+  {"time": 43.5, "type": "tap", "track": 1},
+  {"time": 43.75, "type": "things", "track": 0},
+  {"time": 43.75, "type": "things", "track": 1},
+  {"time": 44.25, "type": "tap", "track": 0},
+  {"time": 44.25, "type": "tap", "track": 1},
+  {"time": 44.75, "type": "tap", "track": 0},
+  {"time": 44.75, "type": "tap", "track": 1},
+  {"time": 45.375, "type": "tap", "track": 0},
+  {"time": 45.375, "type": "tap", "track": 1},
+  {"time": 45.75, "type": "tap", "track": 0},
+  {"time": 45.75, "type": "tap", "track": 1},
+  {"time": 46.125, "type": "tap", "track": 0},
+  {"time": 46.125, "type": "tap", "track": 1},
+  {"time": 46.875, "type": "tap", "track": 0},
+  {"time": 46.875, "type": "tap", "track": 1},
+  {"time": 47.375, "type": "tap", "track": 0},
+  {"time": 47.375, "type": "tap", "track": 1},
+  {"time": 47.875, "type": "tap", "track": 0},
+  {"time": 47.875, "type": "tap", "track": 1},
+  {"time": 48.25, "type": "tap", "track": 0},
+  {"time": 48.25, "type": "tap", "track": 1},
+  {"time": 48.625, "type": "tap", "track": 0},
+  {"time": 48.625, "type": "tap", "track": 1},
+  {"time": 49, "type": "hold", "track": 0, "duration": 0.5},
+  {"time": 49, "type": "hold", "track": 1, "duration": 0.5},
+  {"time": 50, "type": "tap", "track": 0},
+  {"time": 50, "type": "tap", "track": 1},
+  {"time": 50.5, "type": "tap", "track": 0},
+  {"time": 50.5, "type": "tap", "track": 1},
+  {"time": 51.125, "type": "tap", "track": 0},
+  {"time": 51.125, "type": "tap", "track": 1},
+  {"time": 51.5, "type": "tap", "track": 0},
+  {"time": 51.5, "type": "tap", "track": 1},
+  {"time": 51.875, "type": "tap", "track": 0},
+  {"time": 51.875, "type": "tap", "track": 1},
+  {"time": 52.625, "type": "tap", "track": 0},
+  {"time": 52.625, "type": "tap", "track": 1},
+  {"time": 53.125, "type": "tap", "track": 0},
+  {"time": 53.125, "type": "tap", "track": 1},
+  {"time": 53.625, "type": "tap", "track": 0},
+  {"time": 53.625, "type": "tap", "track": 1},
+  {"time": 54, "type": "tap", "track": 0},
+  {"time": 54, "type": "tap", "track": 1},
+  {"time": 54.375, "type": "hold", "track": 0, "duration": 0.5},
+  {"time": 54.375, "type": "hold", "track": 1, "duration": 0.5},
+  {"time": 55.25, "type": "tap", "track": 0},
+  {"time": 55.25, "type": "tap", "track": 1},
+  {"time": 55.75, "type": "tap", "track": 0},
+  {"time": 55.75, "type": "tap", "track": 1},
+  {"time": 56.375, "type": "tap", "track": 0},
+  {"time": 56.375, "type": "tap", "track": 1},
+  {"time": 56.75, "type": "tap", "track": 0},
+  {"time": 56.75, "type": "tap", "track": 1},
+  {"time": 57.125, "type": "tap", "track": 0},
+  {"time": 57.125, "type": "tap", "track": 1},
+  {"time": 57.75, "type": "tap", "track": 0},
+  {"time": 57.75, "type": "tap", "track": 1},
+  {"time": 58.25, "type": "tap", "track": 0},
+  {"time": 58.25, "type": "tap", "track": 1},
+  {"time": 58.75, "type": "tap", "track": 0},
+  {"time": 58.75, "type": "tap", "track": 1},
+  {"time": 59.125, "type": "tap", "track": 0},
+  {"time": 59.125, "type": "tap", "track": 1},
+  {"time": 59.5, "type": "tap", "track": 0},
+  {"time": 59.5, "type": "tap", "track": 1},
+  {"time": 59.875, "type": "hold", "track": 0, "duration": 0.5},
+  {"time": 59.875, "type": "hold", "track": 1, "duration": 0.5},
+  {"time": 60.75, "type": "tap", "track": 0},
+  {"time": 60.75, "type": "tap", "track": 1},
+  {"time": 61.25, "type": "tap", "track": 0},
+  {"time": 61.25, "type": "tap", "track": 1},
+  {"time": 61.875, "type": "tap", "track": 0},
+  {"time": 61.875, "type": "tap", "track": 1},
+  {"time": 62.25, "type": "tap", "track": 0},
+  {"time": 62.25, "type": "tap", "track": 1},
+  {"time": 62.625, "type": "tap", "track": 0},
+  {"time": 62.625, "type": "tap", "track": 1},
+  {"time": 63.25, "type": "tap", "track": 0},
+  {"time": 63.25, "type": "tap", "track": 1},
+  {"time": 63.75, "type": "tap", "track": 0},
+  {"time": 63.75, "type": "tap", "track": 1},
+  {"time": 64.25, "type": "tap", "track": 0},
+  {"time": 64.25, "type": "tap", "track": 1},
+  {"time": 64.625, "type": "tap", "track": 0},
+  {"time": 64.625, "type": "tap", "track": 1},
+  {"time": 65, "type": "hold", "track": 0, "duration": 0.5},
+  {"time": 65, "type": "hold", "track": 1, "duration": 0.5},
+  {"time": 66.625, "type": "things", "track": 0},
+  {"time": 66.625, "type": "things", "track": 1},
+  {"time": 66.875, "type": "tap", "track": 0},
+  {"time": 66.875, "type": "tap", "track": 1},
+  {"time": 67.125, "type": "tap", "track": 0},
+  {"time": 67.125, "type": "tap", "track": 1},
+  {"time": 67.375, "type": "tap", "track": 0},
+  {"time": 67.375, "type": "tap", "track": 1},
+  {"time": 67.625, "type": "things", "track": 0},
+  {"time": 67.625, "type": "things", "track": 1},
+  {"time": 27, "type": "special", "track": 0},
+]
 
 export const demoChart: Chart = {
   title: '关注塔菲谢谢喵',
@@ -99,5 +267,13 @@ export const demoChart: Chart = {
   level: 5,
   bpm: 120,
   offset: 0,
-  notes: generateDemoChart()
+  notes: puziNotes.map(n => ({
+    id: generateNoteId(),
+    time: n.time,
+    type: n.type as Note['type'],
+    track: n.track,
+    duration: n.duration ? Math.round(n.duration * 1000) / 1000 : undefined,
+    hit: false,
+    missed: false
+  }))
 }

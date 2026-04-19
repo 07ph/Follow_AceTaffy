@@ -88,6 +88,20 @@ const settings = useSettingsStore()
             <span class="setting-value">{{ Math.round(settings.inputOffset * 1000) }}ms</span>
           </div>
         </div>
+
+        <div class="setting-item">
+          <label class="setting-label">🎵 主页背景音乐</label>
+          <div class="setting-control">
+            <button
+              class="toggle-btn"
+              :class="{ active: settings.homeBgm }"
+              @click="settings.setHomeBgm(!settings.homeBgm)"
+            >
+              {{ settings.homeBgm ? '开启' : '关闭' }}
+            </button>
+            <span class="setting-value">{{ settings.homeBgm ? '✅' : '❌' }}</span>
+          </div>
+        </div>
       </div>
 
       <button class="btn fade-in fade-in-delay-2" @click="router.push('/')">🏠 返回主页</button>
@@ -195,6 +209,23 @@ const settings = useSettingsStore()
   font-size: 14px;
   color: #ff6b9d;
   font-weight: 600;
+}
+
+.toggle-btn {
+  padding: 6px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.toggle-btn.active {
+  border-color: #ff6b9d;
+  background: rgba(255, 107, 157, 0.2);
+  color: #ff6b9d;
 }
 
 .credits-panel {

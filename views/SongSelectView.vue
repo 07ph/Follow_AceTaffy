@@ -7,6 +7,7 @@ import { demoChart } from '../data/demoChart'
 import ParticleBackground from '../components/ParticleBackground.vue'
 
 const STORAGE_KEY = 'rhythm-pulse-songs'
+const CHART_VERSION = 'v2' // bump to reset cached songs with new chart
 
 const AUDIO_DB_NAME = 'rhythm-pulse-audio'
 const AUDIO_STORE_NAME = 'audio-files'
@@ -52,7 +53,7 @@ function loadSongs() {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0]._version === CHART_VERSION) {
         songs.value = parsed
         return
       }
@@ -60,7 +61,7 @@ function loadSongs() {
   } catch {
     // ignore parse errors
   }
-  songs.value = [{ ...demoChart, id: 'demo' }]
+  songs.value = [{ ...demoChart, id: 'demo', _version: CHART_VERSION, audioUrl: '/demo-song.m4a' }]
   saveSongs()
 }
 
@@ -68,11 +69,31 @@ function saveSongs() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(songs.value))
 }
 
-async function selectSong(song: Chart & { id: string }) {
+async function selectSong(song: Chart & { id: string; audioUrl?: string }) {
   gameStore.resetGame()
   gameStore.setChart(song)
-  // Save the audio DB key for the game to load
-  localStorage.setItem('rhythm-pulse-game-audio-key', `song-${song.id}`)
+  const audioKey = `song-${song.id}`
+  localStorage.setItem('rhythm-pulse-game-audio-key', audioKey)
+
+  // If song has an audioUrl, fetch and store in IndexedDB
+  if (song.audioUrl) {
+    try {
+      const response = await fetch(song.audioUrl)
+      const arrayBuffer = await response.arrayBuffer()
+      const bytes = new Uint8Array(arrayBuffer)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const base64 = btoa(binary)
+      const ext = song.audioUrl.split('.').pop() || 'm4a'
+      const dataUrl = `data:audio/${ext};base64,${base64}`
+      await saveAudioToDB(audioKey, dataUrl)
+    } catch (e) {
+      console.warn('Failed to preload audio:', e)
+    }
+  }
+
   router.push('/game')
 }
 
