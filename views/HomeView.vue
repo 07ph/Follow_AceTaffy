@@ -68,7 +68,7 @@ function onTafiClick(event: MouseEvent) {
   const startX = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
   const startY = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
 
-  entities.value.push(createEntity(startX, startY, 120))
+  entities.value.push(createEntity(startX, startY, 180))
 }
 
 function splitEntity(entity: BouncingEntity) {
