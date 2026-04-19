@@ -217,7 +217,7 @@ onUnmounted(() => {
         @click="onTafiClick"
         @dragstart.prevent
       />
-      <p class="subtitle fade-in fade-in-delay-1">关注塔菲谢谢喵 ✨</p>
+      <p class="subtitle fade-in fade-in-delay-1">关注塔菲谢谢喵 ✨可以试试点一下小菲👆</p>
 
       <div class="nav-buttons fade-in fade-in-delay-2">
         <button class="btn btn-gold" @click="router.push('/select')">🎮 开始游戏</button>

@@ -198,7 +198,7 @@ onMounted(async () => {
   <div class="page-container">
     <ParticleBackground />
     <div class="song-select-content">
-      <h1 class="page-title">选择歌曲</h1>
+      <h1 class="page-title">选择歌曲（第一次玩请注意音量！）</h1>
 
       <div class="actions-bar">
         <button class="btn btn-upload" @click="uploadChart">📤 上传谱面 JSON</button>
