@@ -147,9 +147,9 @@ export class GameRenderer {
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
 
     // 更新轨道参数
-    this.trackY = this.height * 0.6
-    this.leftJudgeX = this.width * 0.35
-    this.rightJudgeX = this.width * 0.65
+    this.trackY = this.height * 0.5
+    this.leftJudgeX = this.width * 0.4
+    this.rightJudgeX = this.width * 0.6
     this.judgeRadius = Math.min(this.width, this.height) * 0.04
 
     this.initBgParticles()
